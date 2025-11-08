@@ -26,6 +26,7 @@ function lib:makeui()
     self.gui.Name = "UI_" .. math.random(1000, 9999)
     self.gui.ResetOnSpawn = false
     self.gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    self.gui.DisplayOrder = 999999
     self.gui.Parent = hui
     
     self.shadow = Instance.new("Frame")
