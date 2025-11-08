@@ -15,6 +15,8 @@ function lib.new(cfg)
     s.tabs = {}
     s.curtab = nil
     s.cd = {}
+    s.elems = {}
+    s.visible = true
     
     s:makeui()
     
@@ -342,6 +344,29 @@ function lib:toggle(tab, n, iv, cb, cd)
         tween:Create(cf, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 45)}):Play()
     end)
     
+    local elem = {
+        type = "toggle",
+        name = n,
+        value = iv,
+        set = function(v)
+            iv = v
+            up(v)
+            cb(v)
+        end,
+        toggle = function()
+            if self.cd[n] then return end
+            self.cd[n] = true
+            iv = not iv
+            up(iv)
+            cb(iv)
+            task.delay(cd, function()
+                self.cd[n] = nil
+            end)
+        end
+    }
+    
+    self.elems[n] = elem
+    
     return cf
 end
 
@@ -419,6 +444,7 @@ function lib:slider(tab, n, mn, mx, iv, cb)
     skc.Parent = sk
     
     local ds = false
+    local curval = iv
     
     local function ups(v)
         v = math.clamp(v, mn, mx)
@@ -427,6 +453,7 @@ function lib:slider(tab, n, mn, mx, iv, cb)
         sfl.Size = UDim2.new(pct, 0, 1, 0)
         sk.Position = UDim2.new(pct, -8, 0.5, -8)
         sv.Text = tostring(math.floor(v))
+        curval = v
         
         cb(v)
     end
@@ -465,6 +492,19 @@ function lib:slider(tab, n, mn, mx, iv, cb)
             ds = false
         end
     end)
+    
+    local elem = {
+        type = "slider",
+        name = n,
+        min = mn,
+        max = mx,
+        value = curval,
+        set = function(v)
+            ups(v)
+        end
+    }
+    
+    self.elems[n] = elem
     
     return sf
 end
@@ -743,7 +783,549 @@ function lib:panel(tab, txt)
     return inf
 end
 
-function lib:keybind(tab, n, defkey, acts, defact, cb)
+function lib:keybind(tab, n, defkey, cb)
+    local kf = Instance.new("Frame")
+    kf.Size = UDim2.new(1, 0, 0, 70)
+    kf.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    kf.BorderSizePixel = 0
+    kf.ZIndex = 1003
+    kf.Parent = tab.cont
+    
+    local kc = Instance.new("UICorner")
+    kc.CornerRadius = UDim.new(0, 8)
+    kc.Parent = kf
+    
+    local kl = Instance.new("TextLabel")
+    kl.Size = UDim2.new(1, -110, 0, 25)
+    kl.Position = UDim2.new(0, 15, 0, 8)
+    kl.BackgroundTransparency = 1
+    kl.Text = n
+    kl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    kl.Font = Enum.Font.Gotham
+    kl.TextSize = 14
+    kl.TextXAlignment = Enum.TextXAlignment.Left
+    kl.ZIndex = 1004
+    kl.Parent = kf
+    
+    local kb = Instance.new("TextButton")
+    kb.Size = UDim2.new(0, 90, 0, 28)
+    kb.Position = UDim2.new(1, -100, 0, 5)
+    kb.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    kb.BorderSizePixel = 0
+    kb.Text = defkey or "None"
+    kb.TextColor3 = Color3.fromRGB(220, 220, 220)
+    kb.Font = Enum.Font.GothamBold
+    kb.TextSize = 11
+    kb.ZIndex = 1004
+    kb.Parent = kf
+    
+    local kbc = Instance.new("UICorner")
+    kbc.CornerRadius = UDim.new(0, 6)
+    kbc.Parent = kb
+    
+    local kbs = Instance.new("UIStroke")
+    kbs.Color = Color3.fromRGB(70, 70, 80)
+    kbs.Thickness = 1
+    kbs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    kbs.Parent = kb
+    
+    local elabel = Instance.new("TextLabel")
+    elabel.Size = UDim2.new(0, 70, 0, 20)
+    elabel.Position = UDim2.new(0, 15, 0, 38)
+    elabel.BackgroundTransparency = 1
+    elabel.Text = "Element:"
+    elabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    elabel.Font = Enum.Font.Gotham
+    elabel.TextSize = 11
+    elabel.TextXAlignment = Enum.TextXAlignment.Left
+    elabel.ZIndex = 1004
+    elabel.Parent = kf
+    
+    local eb = Instance.new("TextButton")
+    eb.Size = UDim2.new(1, -100, 0, 24)
+    eb.Position = UDim2.new(0, 90, 0, 38)
+    eb.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    eb.BorderSizePixel = 0
+    eb.Text = ""
+    eb.ZIndex = 1004
+    eb.Parent = kf
+    
+    local ebc = Instance.new("UICorner")
+    ebc.CornerRadius = UDim.new(0, 5)
+    ebc.Parent = eb
+    
+    local ebs = Instance.new("UIStroke")
+    ebs.Color = Color3.fromRGB(65, 65, 75)
+    ebs.Thickness = 1
+    ebs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    ebs.Parent = eb
+    
+    local et = Instance.new("TextLabel")
+    et.Size = UDim2.new(1, -30, 1, 0)
+    et.Position = UDim2.new(0, 8, 0, 0)
+    et.BackgroundTransparency = 1
+    et.Text = "Select..."
+    et.TextColor3 = Color3.fromRGB(180, 180, 180)
+    et.Font = Enum.Font.Gotham
+    et.TextSize = 10
+    et.TextXAlignment = Enum.TextXAlignment.Left
+    et.ZIndex = 1005
+    et.Parent = eb
+    
+    local ear = Instance.new("TextLabel")
+    ear.Size = UDim2.new(0, 20, 1, 0)
+    ear.Position = UDim2.new(1, -20, 0, 0)
+    ear.BackgroundTransparency = 1
+    ear.Text = "▼"
+    ear.TextColor3 = Color3.fromRGB(100, 150, 255)
+    ear.Font = Enum.Font.GothamBold
+    ear.TextSize = 8
+    ear.ZIndex = 1005
+    ear.Parent = eb
+    
+    local listening = false
+    local curkey = defkey
+    local curelem = nil
+    local curact = nil
+    
+    local knowntypes = {
+        Keyboard = true,
+        MouseButton1 = true,
+        MouseButton2 = true,
+        MouseButton3 = true
+    }
+    
+    local elist = Instance.new("Frame")
+    elist.Size = UDim2.new(0, 180, 0, 200)
+    elist.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    elist.BorderSizePixel = 0
+    elist.ZIndex = 3000
+    elist.Visible = false
+    elist.Parent = self.gui
+    
+    local elc = Instance.new("UICorner")
+    elc.CornerRadius = UDim.new(0, 6)
+    elc.Parent = elist
+    
+    local els = Instance.new("UIStroke")
+    els.Color = Color3.fromRGB(100, 150, 255)
+    els.Thickness = 1.5
+    els.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    els.Transparency = 0.5
+    els.Parent = elist
+    
+    local escroll = Instance.new("ScrollingFrame")
+    escroll.Size = UDim2.new(1, -10, 1, -10)
+    escroll.Position = UDim2.new(0, 5, 0, 5)
+    escroll.BackgroundTransparency = 1
+    escroll.BorderSizePixel = 0
+    escroll.ScrollBarThickness = 4
+    escroll.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
+    escroll.ZIndex = 3001
+    escroll.Parent = elist
+    
+    local ell = Instance.new("UIListLayout")
+    ell.SortOrder = Enum.SortOrder.LayoutOrder
+    ell.Padding = UDim.new(0, 2)
+    ell.Parent = escroll
+    
+    local function upelist()
+        for _, c in pairs(escroll:GetChildren()) do
+            if c:IsA("Frame") then
+                c:Destroy()
+            end
+        end
+        
+        local uitog = Instance.new("Frame")
+        uitog.Size = UDim2.new(1, -10, 0, 24)
+        uitog.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+        uitog.BorderSizePixel = 0
+        uitog.ZIndex = 3002
+        uitog.Parent = escroll
+        
+        local uitogc = Instance.new("UICorner")
+        uitogc.CornerRadius = UDim.new(0, 5)
+        uitogc.Parent = uitog
+        
+        local uitogt = Instance.new("TextLabel")
+        uitogt.Size = UDim2.new(1, -10, 1, 0)
+        uitogt.Position = UDim2.new(0, 8, 0, 0)
+        uitogt.BackgroundTransparency = 1
+        uitogt.Text = "UI Visibility"
+        uitogt.TextColor3 = Color3.fromRGB(220, 220, 220)
+        uitogt.Font = Enum.Font.GothamBold
+        uitogt.TextSize = 10
+        uitogt.TextXAlignment = Enum.TextXAlignment.Left
+        uitogt.ZIndex = 3003
+        uitogt.Parent = uitog
+        
+        local uitogb = Instance.new("TextButton")
+        uitogb.Size = UDim2.new(1, 0, 1, 0)
+        uitogb.BackgroundTransparency = 1
+        uitogb.Text = ""
+        uitogb.ZIndex = 3004
+        uitogb.Parent = uitog
+        
+        uitogb.MouseButton1Click:Connect(function()
+            curelem = "UI"
+            curact = "Toggle"
+            et.Text = "UI Visibility > Toggle"
+            et.TextColor3 = Color3.fromRGB(100, 150, 255)
+            elist.Visible = false
+        end)
+        
+        uitogb.MouseEnter:Connect(function()
+            tween:Create(uitog, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(100, 150, 255)}):Play()
+            tween:Create(uitogt, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        end)
+        
+        uitogb.MouseLeave:Connect(function()
+            tween:Create(uitog, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+            tween:Create(uitogt, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+        end)
+        
+        for en, e in pairs(self.elems) do
+            local ef = Instance.new("Frame")
+            ef.Size = UDim2.new(1, -10, 0, 24)
+            ef.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+            ef.BorderSizePixel = 0
+            ef.ZIndex = 3002
+            ef.Parent = escroll
+            
+            local efc = Instance.new("UICorner")
+            efc.CornerRadius = UDim.new(0, 5)
+            efc.Parent = ef
+            
+            local eft = Instance.new("TextLabel")
+            eft.Size = UDim2.new(1, -10, 1, 0)
+            eft.Position = UDim2.new(0, 8, 0, 0)
+            eft.BackgroundTransparency = 1
+            eft.Text = en
+            eft.TextColor3 = Color3.fromRGB(220, 220, 220)
+            eft.Font = Enum.Font.Gotham
+            eft.TextSize = 10
+            eft.TextXAlignment = Enum.TextXAlignment.Left
+            eft.ZIndex = 3003
+            eft.Parent = ef
+            
+            local efb = Instance.new("TextButton")
+            efb.Size = UDim2.new(1, 0, 1, 0)
+            efb.BackgroundTransparency = 1
+            efb.Text = ""
+            efb.ZIndex = 3004
+            efb.Parent = ef
+            
+            efb.MouseButton1Click:Connect(function()
+                local alist = Instance.new("Frame")
+                alist.Size = UDim2.new(1, -10, 0, 0)
+                alist.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+                alist.BorderSizePixel = 0
+                alist.ZIndex = 3002
+                alist.Parent = escroll
+                
+                local alc = Instance.new("UICorner")
+                alc.CornerRadius = UDim.new(0, 5)
+                alc.Parent = alist
+                
+                local all = Instance.new("UIListLayout")
+                all.SortOrder = Enum.SortOrder.LayoutOrder
+                all.Padding = UDim.new(0, 2)
+                all.Parent = alist
+                
+                local alp = Instance.new("UIPadding")
+                alp.PaddingTop = UDim.new(0, 3)
+                alp.PaddingBottom = UDim.new(0, 3)
+                alp.PaddingLeft = UDim.new(0, 5)
+                alp.PaddingRight = UDim.new(0, 5)
+                alp.Parent = alist
+                
+                local acts = {}
+                
+                if e.type == "toggle" then
+                    acts = {"Toggle"}
+                elseif e.type == "slider" then
+                    acts = {"Set Min", "Set Max", "Set Middle"}
+                end
+                
+                for _, act in ipairs(acts) do
+                    local ab = Instance.new("TextButton")
+                    ab.Size = UDim2.new(1, -10, 0, 22)
+                    ab.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+                    ab.BorderSizePixel = 0
+                    ab.Text = act
+                    ab.TextColor3 = Color3.fromRGB(200, 200, 200)
+                    ab.Font = Enum.Font.Gotham
+                    ab.TextSize = 9
+                    ab.ZIndex = 3003
+                    ab.Parent = alist
+                    
+                    local abc = Instance.new("UICorner")
+                    abc.CornerRadius = UDim.new(0, 4)
+                    abc.Parent = ab
+                    
+                    ab.MouseButton1Click:Connect(function()
+                        curelem = en
+                        curact = act
+                        et.Text = en .. " > " .. act
+                        et.TextColor3 = Color3.fromRGB(100, 150, 255)
+                        elist.Visible = false
+                        upelist()
+                    end)
+                    
+                    ab.MouseEnter:Connect(function()
+                        tween:Create(ab, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(100, 150, 255)}):Play()
+                    end)
+                    
+                    ab.MouseLeave:Connect(function()
+                        tween:Create(ab, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
+                    end)
+                end
+                
+                alist.Size = UDim2.new(1, -10, 0, #acts * 24 + 6)
+                escroll.CanvasSize = UDim2.new(0, 0, 0, ell.AbsoluteContentSize.Y)
+            end)
+            
+            efb.MouseEnter:Connect(function()
+                tween:Create(ef, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+            end)
+            
+            efb.MouseLeave:Connect(function()
+                tween:Create(ef, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+            end)
+        end
+        
+        escroll.CanvasSize = UDim2.new(0, 0, 0, ell.AbsoluteContentSize.Y)
+    end
+    
+    eb.MouseButton1Click:Connect(function()
+        elist.Visible = not elist.Visible
+        if elist.Visible then
+            upelist()
+            local ap = eb.AbsolutePosition
+            local as = eb.AbsoluteSize
+            elist.Position = UDim2.new(0, ap.X, 0, ap.Y + as.Y + 3)
+        end
+    end)
+    
+    run.RenderStepped:Connect(function()
+        if elist.Visible then
+            local ap = eb.AbsolutePosition
+            local as = eb.AbsoluteSize
+            elist.Position = UDim2.new(0, ap.X, 0, ap.Y + as.Y + 3)
+        end
+    end)
+    
+    eb.MouseEnter:Connect(function()
+        tween:Create(eb, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(55, 55, 65)}):Play()
+        tween:Create(ebs, TweenInfo.new(0.2), {Color = Color3.fromRGB(100, 150, 255)}):Play()
+    end)
+    
+    eb.MouseLeave:Connect(function()
+        tween:Create(eb, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
+        tween:Create(ebs, TweenInfo.new(0.2), {Color = Color3.fromRGB(65, 65, 75)}):Play()
+    end)
+    
+    kb.MouseButton1Click:Connect(function()
+        if listening then return end
+        listening = true
+        kb.Text = "..."
+        kb.TextColor3 = Color3.fromRGB(100, 150, 255)
+        tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(100, 150, 255)}):Play()
+    end)
+    
+    kb.MouseEnter:Connect(function()
+        if not listening then
+            tween:Create(kb, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 70)}):Play()
+            tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(100, 150, 255)}):Play()
+        end
+    end)
+    
+    kb.MouseLeave:Connect(function()
+        if not listening then
+            tween:Create(kb, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+            tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 80)}):Play()
+        end
+    end)
+    
+    kf.MouseEnter:Connect(function()
+        tween:Create(kf, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
+    end)
+    
+    kf.MouseLeave:Connect(function()
+        tween:Create(kf, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 45)}):Play()
+    end)
+    
+    local conn
+    conn = uis.InputBegan:Connect(function(i, p)
+        if not listening then return end
+        if p then return end
+        
+        local kn = "None"
+        local ktype = nil
+        
+        if i.UserInputType == Enum.UserInputType.Keyboard then
+            kn = i.KeyCode.Name
+            ktype = "Keyboard"
+        elseif i.UserInputType == Enum.UserInputType.MouseButton1 then
+            kn = "MB1"
+            ktype = "MouseButton1"
+        elseif i.UserInputType == Enum.UserInputType.MouseButton2 then
+            kn = "MB2"
+            ktype = "MouseButton2"
+        elseif i.UserInputType == Enum.UserInputType.MouseButton3 then
+            kn = "MB3"
+            ktype = "MouseButton3"
+        else
+            local utn = tostring(i.UserInputType):gsub("Enum.UserInputType.", "")
+            if utn:match("MouseButton") then
+                kn = utn
+                ktype = utn
+                
+                if not knowntypes[ktype] then
+                    local conf = Instance.new("Frame")
+                    conf.Size = UDim2.new(0, 250, 0, 100)
+                    conf.Position = UDim2.new(0.5, -125, 0.5, -50)
+                    conf.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+                    conf.BorderSizePixel = 0
+                    conf.ZIndex = 5000
+                    conf.Parent = self.gui
+                    
+                    local confc = Instance.new("UICorner")
+                    confc.CornerRadius = UDim.new(0, 8)
+                    confc.Parent = conf
+                    
+                    local confs = Instance.new("UIStroke")
+                    confs.Color = Color3.fromRGB(255, 150, 100)
+                    confs.Thickness = 2
+                    confs.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+                    confs.Parent = conf
+                    
+                    local conft = Instance.new("TextLabel")
+                    conft.Size = UDim2.new(1, -20, 0, 50)
+                    conft.Position = UDim2.new(0, 10, 0, 10)
+                    conft.BackgroundTransparency = 1
+                    conft.Text = "Unknown key: " .. kn .. "\nUse anyway?"
+                    conft.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    conft.Font = Enum.Font.Gotham
+                    conft.TextSize = 11
+                    conft.TextWrapped = true
+                    conft.ZIndex = 5001
+                    conft.Parent = conf
+                    
+                    local yb = Instance.new("TextButton")
+                    yb.Size = UDim2.new(0.45, 0, 0, 28)
+                    yb.Position = UDim2.new(0.05, 0, 1, -35)
+                    yb.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+                    yb.BorderSizePixel = 0
+                    yb.Text = "Yes"
+                    yb.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    yb.Font = Enum.Font.GothamBold
+                    yb.TextSize = 11
+                    yb.ZIndex = 5001
+                    yb.Parent = conf
+                    
+                    local ybc = Instance.new("UICorner")
+                    ybc.CornerRadius = UDim.new(0, 6)
+                    ybc.Parent = yb
+                    
+                    local nb = Instance.new("TextButton")
+                    nb.Size = UDim2.new(0.45, 0, 0, 28)
+                    nb.Position = UDim2.new(0.5, 0, 1, -35)
+                    nb.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+                    nb.BorderSizePixel = 0
+                    nb.Text = "No"
+                    nb.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    nb.Font = Enum.Font.GothamBold
+                    nb.TextSize = 11
+                    nb.ZIndex = 5001
+                    nb.Parent = conf
+                    
+                    local nbc = Instance.new("UICorner")
+                    nbc.CornerRadius = UDim.new(0, 6)
+                    nbc.Parent = nb
+                    
+                    yb.MouseButton1Click:Connect(function()
+                        knowntypes[ktype] = true
+                        curkey = kn
+                        kb.Text = kn
+                        kb.TextColor3 = Color3.fromRGB(220, 220, 220)
+                        listening = false
+                        tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 80)}):Play()
+                        conf:Destroy()
+                    end)
+                    
+                    nb.MouseButton1Click:Connect(function()
+                        kb.Text = curkey or "None"
+                        kb.TextColor3 = Color3.fromRGB(220, 220, 220)
+                        listening = false
+                        tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 80)}):Play()
+                        conf:Destroy()
+                    end)
+                    
+                    return
+                end
+            end
+        end
+        
+        curkey = kn
+        kb.Text = kn
+        kb.TextColor3 = Color3.fromRGB(220, 220, 220)
+        listening = false
+        tween:Create(kbs, TweenInfo.new(0.2), {Color = Color3.fromRGB(70, 70, 80)}):Play()
+    end)
+    
+    local actconn
+    actconn = uis.InputBegan:Connect(function(i, p)
+        if p then return end
+        if listening then return end
+        if not curelem or not curact then return end
+        
+        local pressed = false
+        
+        if i.UserInputType == Enum.UserInputType.Keyboard and i.KeyCode.Name == curkey then
+            pressed = true
+        elseif i.UserInputType == Enum.UserInputType.MouseButton1 and curkey == "MB1" then
+            pressed = true
+        elseif i.UserInputType == Enum.UserInputType.MouseButton2 and curkey == "MB2" then
+            pressed = true
+        elseif i.UserInputType == Enum.UserInputType.MouseButton3 and curkey == "MB3" then
+            pressed = true
+        else
+            local utn = tostring(i.UserInputType):gsub("Enum.UserInputType.", "")
+            if utn == curkey then
+                pressed = true
+            end
+        end
+        
+        if pressed then
+            if curelem == "UI" then
+                self.visible = not self.visible
+                self.shadow.Visible = self.visible
+            else
+                local e = self.elems[curelem]
+                if e then
+                    if e.type == "toggle" and curact == "Toggle" then
+                        e.toggle()
+                    elseif e.type == "slider" then
+                        if curact == "Set Min" then
+                            e.set(e.min)
+                        elseif curact == "Set Max" then
+                            e.set(e.max)
+                        elseif curact == "Set Middle" then
+                            e.set((e.min + e.max) / 2)
+                        end
+                    end
+                end
+            end
+            
+            if cb then
+                cb(curelem, curact, curkey)
+            end
+        end
+    end)
+    
+    return kf
+end
     local kf = Instance.new("Frame")
     kf.Size = UDim2.new(1, 0, 0, 45)
     kf.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
