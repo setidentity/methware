@@ -266,26 +266,16 @@ function lib:newtab(name)
     
     libref:updatetabsizes()
     
-    tab.newtoggle = function(self, cfg) return libref:gettabmethods().newtoggle(self, cfg) end
-    tab.toggle = tab.newtoggle
-    tab.newslider = function(self, cfg) return libref:gettabmethods().newslider(self, cfg) end
-    tab.slider = tab.newslider
-    tab.newdropdown = function(self, cfg) return libref:gettabmethods().newdropdown(self, cfg) end
-    tab.dropdown = tab.newdropdown
-    tab.newbutton = function(self, cfg) return libref:gettabmethods().newbutton(self, cfg) end
-    tab.button = tab.newbutton
-    tab.btn = tab.newbutton
-    tab.newbtn = tab.newbutton
-    tab.newlabel = function(self, cfg) return libref:gettabmethods().newlabel(self, cfg) end
-    tab.label = tab.newlabel
-    tab.newkeybind = function(self, cfg) return libref:gettabmethods().newkeybind(self, cfg) end
-    tab.keybind = tab.newkeybind
-    tab.newtextbox = function(self, cfg) return libref:gettabmethods().newtextbox(self, cfg) end
-    tab.textbox = tab.newtextbox
-    tab.tb = tab.newtextbox
-    tab.newtb = tab.newtextbox
-    tab.newsection = function(self, name) return libref:gettabmethods().newsection(self, name) end
-    tab.section = tab.newsection
+    setmetatable(tab, {
+        __index = function(t, k)
+            local methods = libref:gettabmethods()
+            if methods[k] then
+                return function(_, ...)
+                    return methods[k](t, ...)
+                end
+            end
+        end
+    })
     
     return tab
 end
@@ -302,19 +292,34 @@ function lib:updatetabsizes()
 end
 
 function lib:switchtab(tab)
+    if not self.tabs then return end
+    
     for _, t in ipairs(self.tabs) do
-        t.cont.Visible = false
-        tws:Create(t.acc, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 3)}):Play()
-        tws:Create(t.btn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        if t.cont then
+            t.cont.Visible = false
+        end
+        if t.acc then
+            tws:Create(t.acc, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 3)}):Play()
+        end
+        if t.btn then
+            tws:Create(t.btn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+        end
     end
     
-    tab.cont.Visible = true
+    if tab.cont then
+        tab.cont.Visible = true
+    end
     self.ctab = tab
-    tws:Create(tab.acc, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0.7, 0, 0, 3)}):Play()
-    tws:Create(tab.btn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+    if tab.acc then
+        tws:Create(tab.acc, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0.7, 0, 0, 3)}):Play()
+    end
+    if tab.btn then
+        tws:Create(tab.btn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+    end
 end
 
 function lib:gettabmethods()
+    local libref = self
     local tm = {}
     
     function tm:newtoggle(cfg)
@@ -392,15 +397,15 @@ function lib:gettabmethods()
         upd(tg.val)
         
         btn.MouseButton1Click:Connect(function()
-            if lib.cd[tg.name] then return end
+            if libref.cd[tg.name] then return end
             
-            lib.cd[tg.name] = true
+            libref.cd[tg.name] = true
             tg.val = not tg.val
             upd(tg.val)
             tg.cb(tg.val)
             
             task.delay(tg.cd, function()
-                lib.cd[tg.name] = nil
+                libref.cd[tg.name] = nil
             end)
         end)
         
