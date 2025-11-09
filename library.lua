@@ -266,7 +266,28 @@ function lib:newtab(name)
     
     libref:updatetabsizes()
     
-    return setmetatable(tab, {__index = libref:gettabmethods()})
+    tab.newtoggle = function(self, cfg) return libref:gettabmethods().newtoggle(self, cfg) end
+    tab.toggle = tab.newtoggle
+    tab.newslider = function(self, cfg) return libref:gettabmethods().newslider(self, cfg) end
+    tab.slider = tab.newslider
+    tab.newdropdown = function(self, cfg) return libref:gettabmethods().newdropdown(self, cfg) end
+    tab.dropdown = tab.newdropdown
+    tab.newbutton = function(self, cfg) return libref:gettabmethods().newbutton(self, cfg) end
+    tab.button = tab.newbutton
+    tab.btn = tab.newbutton
+    tab.newbtn = tab.newbutton
+    tab.newlabel = function(self, cfg) return libref:gettabmethods().newlabel(self, cfg) end
+    tab.label = tab.newlabel
+    tab.newkeybind = function(self, cfg) return libref:gettabmethods().newkeybind(self, cfg) end
+    tab.keybind = tab.newkeybind
+    tab.newtextbox = function(self, cfg) return libref:gettabmethods().newtextbox(self, cfg) end
+    tab.textbox = tab.newtextbox
+    tab.tb = tab.newtextbox
+    tab.newtb = tab.newtextbox
+    tab.newsection = function(self, name) return libref:gettabmethods().newsection(self, name) end
+    tab.section = tab.newsection
+    
+    return tab
 end
 
 lib.tab = lib.newtab
