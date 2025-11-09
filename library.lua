@@ -188,13 +188,14 @@ function lib:destroy()
 end
 
 function lib:newtab(name)
+    local libref = self
     local tab = {}
     tab.name = name
     tab.elems = {}
-    tab.ord = #self.tabs + 1
+    tab.ord = libref.tabs and #libref.tabs + 1 or 1
     
     tab.btn = Instance.new("TextButton")
-    local tw = 1 / math.max(#self.tabs + 1, 2) - 0.02
+    local tw = 1 / math.max(#libref.tabs + 1, 2) - 0.02
     tab.btn.Size = UDim2.new(tw, 0, 1, 0)
     tab.btn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
     tab.btn.BorderSizePixel = 0
@@ -204,7 +205,7 @@ function lib:newtab(name)
     tab.btn.TextSize = 13
     tab.btn.ZIndex = 1003
     tab.btn.LayoutOrder = tab.ord
-    tab.btn.Parent = self.tcont
+    tab.btn.Parent = libref.tcont
     
     local tc = Instance.new("UICorner")
     tc.CornerRadius = UDim.new(0, 8)
@@ -234,7 +235,7 @@ function lib:newtab(name)
     tab.cont.ScrollBarImageColor3 = Color3.fromRGB(100, 150, 255)
     tab.cont.CanvasSize = UDim2.new(0, 0, 0, 0)
     tab.cont.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    tab.cont.Parent = self.menu
+    tab.cont.Parent = libref.menu
     
     local cl = Instance.new("UIListLayout")
     cl.SortOrder = Enum.SortOrder.LayoutOrder
@@ -242,35 +243,35 @@ function lib:newtab(name)
     cl.Parent = tab.cont
     
     tab.btn.MouseButton1Click:Connect(function()
-        self:switchtab(tab)
+        libref:switchtab(tab)
     end)
     
     tab.btn.MouseEnter:Connect(function()
-        if self.ctab ~= tab then
+        if libref.ctab ~= tab then
             tws:Create(tab.btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
         end
     end)
     
     tab.btn.MouseLeave:Connect(function()
-        if self.ctab ~= tab then
+        if libref.ctab ~= tab then
             tws:Create(tab.btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 50)}):Play()
         end
     end)
     
-    table.insert(self.tabs, tab)
+    table.insert(libref.tabs, tab)
     
-    if #self.tabs == 1 then
-        self:switchtab(tab)
+    if #libref.tabs == 1 then
+        libref:switchtab(tab)
     end
     
-    self:updatetabsizes()
+    libref:updatetabsizes()
     
-    return setmetatable(tab, {__index = self:gettabmethods()})
+    return setmetatable(tab, {__index = libref:gettabmethods()})
 end
 
 lib.tab = lib.newtab
 
-function lib:utsz()
+function lib:updatetabsizes()
     local tc = #self.tabs
     local tw = 1 / math.max(tc, 2) - (0.02 * (tc - 1) / tc)
     
@@ -279,7 +280,7 @@ function lib:utsz()
     end
 end
 
-function lib:stab(tab)
+function lib:switchtab(tab)
     for _, t in ipairs(self.tabs) do
         t.cont.Visible = false
         tws:Create(t.acc, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 0, 0, 3)}):Play()
@@ -292,7 +293,7 @@ function lib:stab(tab)
     tws:Create(tab.btn, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
 end
 
-function lib:gtm()
+function lib:gettabmethods()
     local tm = {}
     
     function tm:newtoggle(cfg)
