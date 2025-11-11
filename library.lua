@@ -1013,53 +1013,139 @@ function lib:createnotif(title, text, duration)
     local id = notifcount
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 80)
-    frame.Position = UDim2.new(1, -320, 1, -100 - (#notifs * 90))
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    frame.Size = UDim2.new(0, 320, 0, 90)
+    frame.Position = UDim2.new(1, 340, 1, -100 - (#notifs * 100))
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     frame.BorderSizePixel = 0
-    frame.Parent = game:service("CoreGui"):FindFirstChild("RobloxGui") or game:service("Players").LocalPlayer:WaitForChild("PlayerGui")
+    frame.ClipsDescendants = true
+    frame.Parent = game:service("CoreGui"):FindFirstChild("RobloxGui") or lp:WaitForChild("PlayerGui")
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 40)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+    }
+    gradient.Rotation = 45
+    gradient.Parent = frame
     
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(100, 150, 255)
     stroke.Thickness = 2
+    stroke.Transparency = 0.3
     stroke.Parent = frame
     
+    local glow = Instance.new("ImageLabel")
+    glow.Size = UDim2.new(1, 40, 1, 40)
+    glow.Position = UDim2.new(0, -20, 0, -20)
+    glow.BackgroundTransparency = 1
+    glow.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+    glow.ImageColor3 = Color3.fromRGB(100, 150, 255)
+    glow.ImageTransparency = 0.9
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(10, 10, 118, 118)
+    glow.Parent = frame
+    
+    local accent = Instance.new("Frame")
+    accent.Size = UDim2.new(0, 4, 1, 0)
+    accent.Position = UDim2.new(0, 0, 0, 0)
+    accent.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    accent.BorderSizePixel = 0
+    accent.Parent = frame
+    
+    local accentcorner = Instance.new("UICorner")
+    accentcorner.CornerRadius = UDim.new(0, 10)
+    accentcorner.Parent = accent
+    
     local titlelabel = Instance.new("TextLabel")
-    titlelabel.Size = UDim2.new(1, -20, 0, 25)
-    titlelabel.Position = UDim2.new(0, 10, 0, 5)
+    titlelabel.Size = UDim2.new(1, -30, 0, 28)
+    titlelabel.Position = UDim2.new(0, 15, 0, 8)
     titlelabel.BackgroundTransparency = 1
     titlelabel.Text = title
     titlelabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titlelabel.TextSize = 16
+    titlelabel.TextSize = 17
     titlelabel.Font = Enum.Font.GothamBold
     titlelabel.TextXAlignment = Enum.TextXAlignment.Left
+    titlelabel.TextTransparency = 1
     titlelabel.Parent = frame
     
     local textlabel = Instance.new("TextLabel")
-    textlabel.Size = UDim2.new(1, -20, 0, 40)
-    textlabel.Position = UDim2.new(0, 10, 0, 30)
+    textlabel.Size = UDim2.new(1, -30, 0, 48)
+    textlabel.Position = UDim2.new(0, 15, 0, 36)
     textlabel.BackgroundTransparency = 1
     textlabel.Text = text
-    textlabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    textlabel.TextSize = 14
+    textlabel.TextColor3 = Color3.fromRGB(180, 180, 190)
+    textlabel.TextSize = 15
     textlabel.Font = Enum.Font.Gotham
     textlabel.TextXAlignment = Enum.TextXAlignment.Left
     textlabel.TextYAlignment = Enum.TextYAlignment.Top
     textlabel.TextWrapped = true
+    textlabel.TextTransparency = 1
     textlabel.Parent = frame
+    
+    local timer = Instance.new("Frame")
+    timer.Size = UDim2.new(1, 0, 0, 2)
+    timer.Position = UDim2.new(0, 0, 1, -2)
+    timer.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+    timer.BorderSizePixel = 0
+    timer.Parent = frame
     
     notif.frame = frame
     notif.id = id
     table.insert(notifs, notif)
     
-    frame:TweenPosition(UDim2.new(1, -320, 1, -100 - ((#notifs - 1) * 90)), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.3, true)
+    frame:TweenPosition(
+        UDim2.new(1, -330, 1, -100 - ((#notifs - 1) * 100)),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Back,
+        0.5,
+        true
+    )
     
-    task.delay(duration or 3, function()
-        frame:TweenPosition(UDim2.new(1, 20, frame.Position.Y.Scale, frame.Position.Y.Offset), Enum.EasingDirection.In, Enum.EasingStyle.Quint, 0.3, true)
+    task.spawn(function()
+        task.wait(0.1)
+        titlelabel:TweenSizeAndPosition(
+            titlelabel.Size,
+            titlelabel.Position,
+            Enum.EasingDirection.Out,
+            Enum.EasingStyle.Quint,
+            0.3,
+            true
+        )
+        for i = 1, 10 do
+            titlelabel.TextTransparency = titlelabel.TextTransparency - 0.1
+            textlabel.TextTransparency = textlabel.TextTransparency - 0.1
+            task.wait(0.02)
+        end
+    end)
+    
+    local dur = duration or 3
+    timer:TweenSize(
+        UDim2.new(0, 0, 0, 2),
+        Enum.EasingDirection.In,
+        Enum.EasingStyle.Linear,
+        dur,
+        true
+    )
+    
+    task.delay(dur, function()
+        for i = 1, 10 do
+            titlelabel.TextTransparency = titlelabel.TextTransparency + 0.1
+            textlabel.TextTransparency = textlabel.TextTransparency + 0.1
+            stroke.Transparency = stroke.Transparency + 0.07
+            task.wait(0.02)
+        end
+        
+        frame:TweenPosition(
+            UDim2.new(1, 20, frame.Position.Y.Scale, frame.Position.Y.Offset),
+            Enum.EasingDirection.In,
+            Enum.EasingStyle.Back,
+            0.3,
+            true
+        )
         task.wait(0.3)
         frame:Destroy()
         
@@ -1071,7 +1157,13 @@ function lib:createnotif(title, text, duration)
         end
         
         for i, n in ipairs(notifs) do
-            n.frame:TweenPosition(UDim2.new(1, -320, 1, -100 - ((i - 1) * 90)), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.2, true)
+            n.frame:TweenPosition(
+                UDim2.new(1, -330, 1, -100 - ((i - 1) * 100)),
+                Enum.EasingDirection.Out,
+                Enum.EasingStyle.Quint,
+                0.3,
+                true
+            )
         end
     end)
 end
