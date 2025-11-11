@@ -32,7 +32,7 @@ end
 
 function lib:createui()
     self.gui = Instance.new("ScreenGui")
-    self.gui.Name = "ModernLibrary_" .. math.random(1000, 9999)
+    self.gui.Name = "methlibrary_" .. math.random(1000, 9999)
     self.gui.ResetOnSpawn = false
     self.gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     self.gui.Parent = cg
@@ -181,6 +181,9 @@ end
 
 function lib:toggle()
     self.shd.Visible = not self.shd.Visible
+    if getgenv().debugmethlib then
+        print(self.shd.Visible)
+    end
 end
 
 function lib:destroy()
