@@ -1001,4 +1001,76 @@ function lib:gettabmethods()
     return tm
 end
 
+local notifs = {}
+local notifcount = 0
+
+function lib:createnotif(title, text, duration)
+    local notif = {}
+    notifcount = notifcount + 1
+    local id = notifcount
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 80)
+    frame.Position = UDim2.new(1, -320, 1, -100 - (#notifs * 90))
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = game:service("CoreGui"):FindFirstChild("RobloxGui") or game:service("Players").LocalPlayer:WaitForChild("PlayerGui")
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(100, 150, 255)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+    
+    local titlelabel = Instance.new("TextLabel")
+    titlelabel.Size = UDim2.new(1, -20, 0, 25)
+    titlelabel.Position = UDim2.new(0, 10, 0, 5)
+    titlelabel.BackgroundTransparency = 1
+    titlelabel.Text = title
+    titlelabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titlelabel.TextSize = 16
+    titlelabel.Font = Enum.Font.GothamBold
+    titlelabel.TextXAlignment = Enum.TextXAlignment.Left
+    titlelabel.Parent = frame
+    
+    local textlabel = Instance.new("TextLabel")
+    textlabel.Size = UDim2.new(1, -20, 0, 40)
+    textlabel.Position = UDim2.new(0, 10, 0, 30)
+    textlabel.BackgroundTransparency = 1
+    textlabel.Text = text
+    textlabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    textlabel.TextSize = 14
+    textlabel.Font = Enum.Font.Gotham
+    textlabel.TextXAlignment = Enum.TextXAlignment.Left
+    textlabel.TextYAlignment = Enum.TextYAlignment.Top
+    textlabel.TextWrapped = true
+    textlabel.Parent = frame
+    
+    notif.frame = frame
+    notif.id = id
+    table.insert(notifs, notif)
+    
+    frame:TweenPosition(UDim2.new(1, -320, 1, -100 - ((#notifs - 1) * 90)), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.3, true)
+    
+    task.delay(duration or 3, function()
+        frame:TweenPosition(UDim2.new(1, 20, frame.Position.Y.Scale, frame.Position.Y.Offset), Enum.EasingDirection.In, Enum.EasingStyle.Quint, 0.3, true)
+        task.wait(0.3)
+        frame:Destroy()
+        
+        for i, n in ipairs(notifs) do
+            if n.id == id then
+                table.remove(notifs, i)
+                break
+            end
+        end
+        
+        for i, n in ipairs(notifs) do
+            n.frame:TweenPosition(UDim2.new(1, -320, 1, -100 - ((i - 1) * 90)), Enum.EasingDirection.Out, Enum.EasingStyle.Quint, 0.2, true)
+        end
+    end)
+end
+
 return lib
